@@ -143,6 +143,13 @@ workflow runQualityAlign {
         ch_sorted_bam = ch_ivar_sort_bam.mix(ch_rehead_sorted_bam)
         ch_sorted_mixedbam = ch_sorted_bam.mix(ch_amplicon_sort_bam)
 
+        //TODO implement mpileup + plotQC block
+        GENERATE_PILEUP_COV_TSV(
+            ch_sorted_mixed_bam,
+            ch_genome
+        )
+    
+
         // MODULE: MULTIQC
         if (!params.skip_multiqc) {    
             // set empty
