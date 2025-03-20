@@ -176,10 +176,9 @@ workflow runQualityAlign {
             ch_genome
         )
 
-        //TODO Waiting to test with aquascope docker from Andi
-        // GENERATE_COV_TSV(
-        //     GENERATE_PILEUP.out.pileup
-        // )
+        GENERATE_COV_TSV(
+            GENERATE_PILEUP.out.pileup
+        )
 
         // GENERATE_PILEUP_COV_TSV(
         //     ONT_TRIMMING.out,
