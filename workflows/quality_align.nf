@@ -35,6 +35,7 @@ include { SAMPLESHEET_CHECK                     } from '../modules/local/samples
 include { INPUT_CHECK                           } from '../subworkflows/local/input_check.nf'
 include { ONT_TRIMMING                          } from '../subworkflows/local/ont_trimming.nf'
 include { TRIMMING   as IVAR_TRIMMING_SORTING   } from '../subworkflows/local/trimming.nf'
+include { BAM_SORT_STATS_SAMTOOLS               } from '../subworkflows/local/bam_sort_stats_samtools/main.nf'
 
 //
 // MODULES
@@ -50,6 +51,9 @@ include { MINIMAP2_ALIGN as MINIMAP2_ALIGN_SHORT} from '../modules/local/minimap
 include { MINIMAP2_ALIGN as MINIMAP2_ALIGN_LONG } from '../modules/local/minimap2/align/main'
 include { REHEADER_BAM                          } from '../modules/local/reheader_bam.nf'
 include { MULTIQC                               } from '../modules/nf-core/multiqc/main'
+include { GENERATE_COV_TSV                      } from '../modules/local/cwap/generateCovTsv.nf'
+include { GENERATE_PILEUP                       } from '../modules/local/cwap/generatePileup.nf'
+
 
 
 /*
@@ -143,12 +147,49 @@ workflow runQualityAlign {
         ch_sorted_bam = ch_ivar_sort_bam.mix(ch_rehead_sorted_bam)
         ch_sorted_mixedbam = ch_sorted_bam.mix(ch_amplicon_sort_bam)
 
-        //TODO implement mpileup + plotQC block
-        GENERATE_PILEUP_COV_TSV(
-            ch_sorted_mixed_bam,
+        // Diagnostic
+        // ch_sorted_mixedbam.view()
+        // ch_genome.view()
+        
+        REHEADER_BAM.out.reheadered_bam.view()
+        IVAR_TRIMMING_SORTING.out.bam.view()
+        ONT_TRIMMING.out.bam.view()
+        
+        // ch_join  = ch_input
+        //     .map{metaIR, file -> [metaIR.subMap(["ref"]), metaIR, file]}
+        //     .combine(chr_ref)
+        //     .map{metaR, metaIR, file, ref -> [metaIR, file, ref]}
+        // // Remove certain keys (and their entries) from a map
+        // ch.map { meta, files -> [ meta.subMap( ['id','rg'] ), files ] }
+        // // OR by specifying what not to include
+        // ch.map { meta, files -> [ meta.findAll { ! it.key in ['single_end'] }, files ] }
+       
+        // //TODO implement mpileup + plotQC block
+        // GENERATE_PILEUP_COV_TSV(
+        //     ch_sorted_mixedbam.map { it.first() },
+        //     ch_sorted_mixedbam.map { it.last() },
+        //     ch_genome
+        // )
+
+        GENERATE_PILEUP(
+            ch_sorted_mixedbam,
             ch_genome
         )
-    
+
+        //TODO Waiting to test with aquascope docker from Andi
+        // GENERATE_COV_TSV(
+        //     GENERATE_PILEUP.out.pileup
+        // )
+
+        // GENERATE_PILEUP_COV_TSV(
+        //     ONT_TRIMMING.out,
+        //     ch_genome
+        // )
+
+        // BAM_SORT_STATS_SAMTOOLS(
+        //     ch_sorted_mixedbam,
+        //     ch_genome
+        // )
 
         // MODULE: MULTIQC
         if (!params.skip_multiqc) {    

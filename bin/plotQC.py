@@ -1,4 +1,4 @@
-# /usr/bin/env python3
+#!/usr/bin/env python3
 # From C-WAP https://github.com/CFSAN-Biostatistics/C-WAP
 
 import numpy as np

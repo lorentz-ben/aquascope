@@ -19,6 +19,8 @@ include { paramsSummaryMultiqc              } from '../subworkflows/nf-core/util
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_aquascope_pipeline'
+include { BAM_SORT_STATS_SAMTOOLS as BAM_SORT_STATS_SAMTOOLS_FREJYA               } from '../subworkflows/local/bam_sort_stats_samtools/main.nf'
+
 
 /*
 ========================================================================================
@@ -29,6 +31,8 @@ include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_aqua
 include { INPUT_BAM_CHECK   	 } from '../modules/local/input_check_bam.nf'
 include { FREYJA_VARIANT_CALLING } from '../subworkflows/local/freyja_variant_demix_update/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
+include { SAMTOOLS_STATS    as   SAMTOOLS_STATS_FREJYA } from '../modules/nf-core/samtools/stats/main.nf'
+include { SAMTOOLS_INDEX         } from '../modules/nf-core/samtools/index/main.nf'
 
 workflow runFreyja {
     take: 
@@ -54,6 +58,31 @@ workflow runFreyja {
     ch_freyja_variants = FREYJA_VARIANT_CALLING.out.variants
     ch_freyja_demix = FREYJA_VARIANT_CALLING.out.demix
     ch_versions = ch_versions.mix(FREYJA_VARIANT_CALLING.out.versions)
+
+    // BAM_SORT_STATS_SAMTOOLS_FREJYA(
+    //     ch_sorted_bam,
+    //     ch_genome
+    // )
+
+    SAMTOOLS_INDEX ( ch_sorted_bam )
+
+    ch_sorted_bam
+    .join(SAMTOOLS_INDEX.out.bai, by: [0], remainder: true)
+        .join(SAMTOOLS_INDEX.out.csi, by: [0], remainder: true)
+        .map {
+            meta, bam, bai, csi ->
+                if (bai) {
+                    [ meta, bam, bai ]
+                } else {
+                    [ meta, bam, csi ]
+                }
+        }
+        .set { ch_bam_bai }
+
+    // SAMTOOLS_STATS_FREJYA(
+    //     ch_bam_bai,
+    //     ch_genome
+    // )
 
     // Run MultiQC
     ch_multiqc_report = Channel.empty()
