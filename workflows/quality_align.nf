@@ -74,6 +74,7 @@ workflow runQualityAlign {
     // Validate the Sample File
     SAMPLESHEET_CHECK(ch_input)
 
+
     // Proceed only if SAMPLESHEET_CHECK is successful
     if (SAMPLESHEET_CHECK.out.success) {
         println "The samplesheet has been validated, the pipeline will start soon, check samplesheet_validated.csv for more details"
@@ -116,6 +117,8 @@ workflow runQualityAlign {
         MINIMAP2_ALIGN_LONG(ch_trimmed_reads_long, ch_genome, true, false, false)
         ch_long_align_bam = MINIMAP2_ALIGN_LONG.out.bam
 
+        ch_no_io_bam = ch_short_align_bam.mix(ch_long_align_bam)
+
         // Reheader and Sort the INPUT BAM from Ion-Torrent
         ch_rehead_sorted_bam = Channel.empty()
         REHEADER_BAM(ch_raw_bam, ch_gff)
@@ -146,14 +149,18 @@ workflow runQualityAlign {
         // Combine sorted BAM files
         ch_sorted_bam = ch_ivar_sort_bam.mix(ch_rehead_sorted_bam)
         ch_sorted_mixedbam = ch_sorted_bam.mix(ch_amplicon_sort_bam)
-
+        
+        BAM_SORT_STATS_SAMTOOLS(
+            ch_raw_bam,
+            ch_genome
+        )
         // Diagnostic
         // ch_sorted_mixedbam.view()
         // ch_genome.view()
         
-        REHEADER_BAM.out.reheadered_bam.view()
-        IVAR_TRIMMING_SORTING.out.bam.view()
-        ONT_TRIMMING.out.bam.view()
+        // REHEADER_BAM.out.reheadered_bam.view()
+        // IVAR_TRIMMING_SORTING.out.bam.view()
+        // ONT_TRIMMING.out.bam.view()
         
         // ch_join  = ch_input
         //     .map{metaIR, file -> [metaIR.subMap(["ref"]), metaIR, file]}
@@ -171,8 +178,9 @@ workflow runQualityAlign {
         //     ch_genome
         // )
 
+        ch_no_io_bam.view()
         GENERATE_PILEUP(
-            ch_sorted_mixedbam,
+            ch_no_io_bam,
             ch_genome
         )
 
@@ -185,10 +193,6 @@ workflow runQualityAlign {
         //     ch_genome
         // )
 
-        // BAM_SORT_STATS_SAMTOOLS(
-        //     ch_sorted_mixedbam,
-        //     ch_genome
-        // )
 
         // MODULE: MULTIQC
         if (!params.skip_multiqc) {    
@@ -229,6 +233,8 @@ workflow runQualityAlign {
         println "The samplesheet validation failed. Please check the input samplesheet and try again."
         exit 1
     }
+
+    
 
     emit:
         sorted_mixedbam         = ch_sorted_mixedbam
