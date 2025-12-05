@@ -117,6 +117,7 @@ workflow runQualityAlign {
         MINIMAP2_ALIGN_LONG(ch_trimmed_reads_long, ch_genome, true, false, false)
         ch_long_align_bam = MINIMAP2_ALIGN_LONG.out.bam
 
+        // bam files that do not include iontorrent (which is how NY bams will be passed in)
         ch_no_io_bam = ch_short_align_bam.mix(ch_long_align_bam)
 
         // Reheader and Sort the INPUT BAM from Ion-Torrent
@@ -150,50 +151,26 @@ workflow runQualityAlign {
         ch_sorted_bam = ch_ivar_sort_bam.mix(ch_rehead_sorted_bam)
         ch_sorted_mixedbam = ch_sorted_bam.mix(ch_amplicon_sort_bam)
         
+        //Creates samtools mapping stats needed for Bam file submissions
         BAM_SORT_STATS_SAMTOOLS(
-            ch_raw_bam,
+            ch_rehead_sorted_bam,
             ch_genome
         )
-        // Diagnostic
-        // ch_sorted_mixedbam.view()
-        // ch_genome.view()
         
-        // REHEADER_BAM.out.reheadered_bam.view()
-        // IVAR_TRIMMING_SORTING.out.bam.view()
-        // ONT_TRIMMING.out.bam.view()
-        
-        // ch_join  = ch_input
-        //     .map{metaIR, file -> [metaIR.subMap(["ref"]), metaIR, file]}
-        //     .combine(chr_ref)
-        //     .map{metaR, metaIR, file, ref -> [metaIR, file, ref]}
-        // // Remove certain keys (and their entries) from a map
-        // ch.map { meta, files -> [ meta.subMap( ['id','rg'] ), files ] }
-        // // OR by specifying what not to include
-        // ch.map { meta, files -> [ meta.findAll { ! it.key in ['single_end'] }, files ] }
-       
-        // //TODO implement mpileup + plotQC block
-        // GENERATE_PILEUP_COV_TSV(
-        //     ch_sorted_mixedbam.map { it.first() },
-        //     ch_sorted_mixedbam.map { it.last() },
-        //     ch_genome
-        // )
-
-        ch_no_io_bam.view()
+        //Produces an mpileup file used for quality control of samples downstream
         GENERATE_PILEUP(
-            ch_no_io_bam,
+            
+            ch_sorted_mixedbam,
             ch_genome
         )
 
+        //takes mpilup file and produces quality score figures and table
         GENERATE_COV_TSV(
-            GENERATE_PILEUP.out.pileup
+            GENERATE_PILEUP.out.pileup,
+            ch_genome
         )
 
-        // GENERATE_PILEUP_COV_TSV(
-        //     ONT_TRIMMING.out,
-        //     ch_genome
-        // )
-
-
+        
         // MODULE: MULTIQC
         if (!params.skip_multiqc) {    
             // set empty
@@ -233,8 +210,6 @@ workflow runQualityAlign {
         println "The samplesheet validation failed. Please check the input samplesheet and try again."
         exit 1
     }
-
-    
 
     emit:
         sorted_mixedbam         = ch_sorted_mixedbam

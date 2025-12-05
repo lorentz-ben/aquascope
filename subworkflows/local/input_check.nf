@@ -59,12 +59,14 @@ workflow INPUT_CHECK {
                     return [ meta, lr]
                 }
             }
+        //Added bedfile to metamap for mpileup generation bl 7.16.25
         ch_raw_bam = ch_input_rows.filter { it[1] == 'iontorrent' }
             .map { id, platform, fastq_1, fastq_2, lr, bam_file, bedfile ->
                 if (bam_file) {
                     def meta = [:]
                     meta.id = id
                     meta.platform = platform
+                    meta.bedfile = bedfile
                     return [meta, bam_file]
                 } else {
                     def meta = [:]

@@ -29,7 +29,7 @@ process FREYJA_DEMIX {
         $args \\
         --output ${prefix}.tsv \\
         --barcodes $barcodes \\
-        --meta $lineages_meta \\
+        --lineageyml $lineages_meta \\
         $variants \\
         $depths
 

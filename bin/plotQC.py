@@ -8,13 +8,44 @@ import sys
 import findUncoveredCoordinates
 import pandas as pd #JA 2022 11 07
 
+# BL addition 10/16/25 in order to make aquascope multi-pathogen ready
+def count_bases_in_fasta(filepath):
+    """
+    Opens a FASTA file, ensures it contains only one record,
+    and returns the number of bases in that record.
 
-# TODO Pass files in properly - we need the mpileup and the primer bedfile
+    Parameters:
+        filepath (str): Path to the FASTA file.
+
+    Returns:
+        int: Number of bases in the sequence.
+
+    Raises:
+        ValueError: If multiple records (multiple '>' headers) are found.
+    """
+    with open(filepath, 'r') as file:
+        lines = file.readlines()
+
+    # Count how many headers ('>') there are
+    header_lines = [line for line in lines if line.startswith('>')]
+    if len(header_lines) == 0:
+        raise ValueError("No FASTA record found — missing header line starting with '>'.")
+    elif len(header_lines) > 1:
+        raise ValueError(f"Multiple FASTA records found ({len(header_lines)} headers). Only one is expected.")
+
+    # Join all sequence lines except the header
+    sequence = ''.join(line.strip() for line in lines if not line.startswith('>'))
+    return len(sequence)
+
+
 pileupFilename = sys.argv[1]
 bedfile = sys.argv[2]
+reference = sys.argv[3]
 
 # TODO un-hard code genome size
-GENOME_SIZE = 29903
+
+#GENOME_SIZE = 29903
+GENOME_SIZE = count_bases_in_fasta(reference)
 quality = np.zeros(GENOME_SIZE)
 readDepth = np.zeros(GENOME_SIZE)
 # numTermini = np.zeros(GENOME_SIZE)
@@ -22,7 +53,8 @@ readDepth = np.zeros(GENOME_SIZE)
 # Import the pile-up file and record the coverage and average quality per position
 with open(pileupFilename) as infile:
     # Uncomment below in case the -d <maxDepth> was unset during mpileup step.
-    csv.field_size_limit(int(1e7))
+    # increase field_size_limit fom 1e7 to 1e10 - some verily samples errored out with smaller ceiling BL 9/10/25
+    csv.field_size_limit(int(1e10))
     reader = csv.reader(infile, delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
         pos = int(row[1])-1
@@ -237,6 +269,7 @@ plt.close()
 # Generate a bar plot to show breakdown of uncovered/undercovered loci into viral genes and save in a file
 
 # GeneName:(start_inclusive,end_inclusive)
+#TODO this is only SC2 specific need to update for all pathogens
 gene_start_end = {"5' UTR":(1,265), 'ORF1ab':(266,21555), 'S':(21563,25384), 'ORF3a':(25393,26220), 'E':(26245,26472), 'M':(26523,27191), 'ORF6':(27202,27387), 'ORF7ab':(27394,27887), 'ORF8':(27894,28259), 'N':(28274,29533), 'ORF10':(29558,29674), "3' UTR":(29675,29903)}
 
 def coordinate2gene (coordinate):   

@@ -4,15 +4,17 @@ process GENERATE_COV_TSV {
 
     //conda "${moduleDir}/environment.yml"
     //TODO update this once Andi sends over the container
-    // container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-    //     'https://depot.galaxyproject.org/singularity/samtools:1.21--h50ea8bc_0' :
-    //     'biocontainers/samtools:1.21--h50ea8bc_0' }"
-    //container "${moduleDir}/aquascope.sif"
+     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+         'docker://quay.io/pawsey/hpc-python:3.11' :
+         'quay.io/pawsey/hpc-python:3.11' }"
+
+    
  
     
 
     input:
         tuple val(meta), path(pileup)
+        path fasta
     
     output:
         tuple val(meta), path('*pos-coverage-quality.tsv'), emit: pos_cov_tsv
@@ -36,8 +38,8 @@ process GENERATE_COV_TSV {
         echo "Invalid bedfile: ${bedfile}"
         exit 1
     fi
-
-        plotQC.py $pileup ${bedfile_basename}
+        
+        plotQC.py $pileup ${bedfile_basename} $fasta
 
         mv pos-coverage-quality.tsv ${prefix}_pos-coverage-quality.tsv
 
