@@ -33,7 +33,7 @@ process FASTP {
     
     """
     fastp \\
-        --in1 ${prefix}.fastq.gz \\
+        --in1 ${reads} \\
         --out1  ${prefix}.fastp.fastq.gz \\
         --thread $task.cpus \\
         --json ${prefix}.fastp.json \\
