@@ -26,7 +26,7 @@ workflow INPUT_CHECK {
                         exit 1, "Invalid input samplesheet: ${platform} platform requires long reads to be specified."
                     }
                     if ((platform == 'iontorrent') && !bam_file) {
-                        exit 1, "Invalid input samplesheet: IonTorrent platform requires either a BAM file or short_reads_1 to be specified."
+                        exit 1, "Invalid input samplesheet: IonTorrent platform requires a BAM file to be specified."
                     }
                     if (platform in ['illumina', 'nanopore', 'pacbio'] && !bedfile) {
                         exit 1, "Invalid input samplesheet: ${platform} platform requires a bedfile to be specified."
