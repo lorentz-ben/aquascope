@@ -4,20 +4,19 @@ process IVAR_CONSENSUS {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/ivar:1.4.3--h43eeafb_0' :
-        'biocontainers/ivar:1.4.3--h43eeafb_0' }"
+        'https://depot.galaxyproject.org/singularity/ivar:1.4.4--h077b44d_0' :
+        'biocontainers/ivar:1.4.4--h077b44d_0' }"
 
     input:
     tuple val(meta), path(bam)
-    path  fasta
-    path  fai
-    path  gff
-    val   save_mpileup
+    path fasta
+    val save_mpileup
 
     output:
-    tuple val(meta), path("*.tsv")    , emit: tsv
-    tuple val(meta), path("*.mpileup"), optional:true, emit: mpileup
-    path "versions.yml"               , emit: versions
+    tuple val(meta), path("*.fa")      , emit: fasta
+    tuple val(meta), path("*.qual.txt"), emit: qual
+    tuple val(meta), path("*.mpileup") , optional:true, emit: mpileup
+    path "versions.yml"                , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -26,20 +25,17 @@ process IVAR_CONSENSUS {
     def args = task.ext.args ?: ''
     def args2 = task.ext.args2 ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def features = gff ? "-g $gff" : ""
     def mpileup = save_mpileup ? "| tee ${prefix}.mpileup" : ""
     """
     samtools \\
         mpileup \\
-        $args2 \\
         --reference $fasta \\
+        $args2 \\
         $bam \\
         $mpileup \\
         | ivar \\
-            variants \\
+            consensus \\
             $args \\
-            $features \\
-            -r $fasta \\
             -p $prefix
 
     cat <<-END_VERSIONS > versions.yml
@@ -52,7 +48,8 @@ process IVAR_CONSENSUS {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def touch_mpileup = save_mpileup ? "touch ${prefix}.mpileup" : ''
     """
-    touch ${prefix}.tsv
+    touch ${prefix}.fa
+    touch ${prefix}.qual.txt
     $touch_mpileup
 
     cat <<-END_VERSIONS > versions.yml

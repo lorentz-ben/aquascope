@@ -53,6 +53,7 @@ include { REHEADER_BAM                          } from '../modules/local/reheade
 include { MULTIQC                               } from '../modules/nf-core/multiqc/main'
 include { GENERATE_COV_TSV                      } from '../modules/local/cwap/generateCovTsv.nf'
 include { GENERATE_PILEUP                       } from '../modules/local/cwap/generatePileup.nf'
+include { IVAR_CONSENSUS                        } from '../modules/local/ivar/main.nf'
 
 
 
@@ -169,6 +170,12 @@ workflow runQualityAlign {
             GENERATE_PILEUP.out.pileup,
             ch_genome
         )
+
+        //generate consensus sequence using Ivar
+        IVAR_CONSENSUS(
+            ch_rehead_sorted_bam,
+            ch_genome,
+            save_mpileup)
 
         
         // MODULE: MULTIQC
