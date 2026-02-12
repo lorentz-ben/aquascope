@@ -68,6 +68,7 @@ workflow runQualityAlign {
     // Initialize channels with known values
     ch_genome = params.fasta ? Channel.value(file(params.fasta)) : Channel.empty()
     ch_gff    = params.gff ? Channel.value(file(params.gff)) : Channel.empty()
+    save_mpileup = params.save_mpileup
 
     // Initialize channels for other data
     ch_versions = Channel.empty()
@@ -173,9 +174,10 @@ workflow runQualityAlign {
 
         //generate consensus sequence using Ivar
         IVAR_CONSENSUS(
-            ch_rehead_sorted_bam,
+            ch_sorted_mixedbam,
             ch_genome,
-            save_mpileup)
+            save_mpileup
+        )
 
         
         // MODULE: MULTIQC
