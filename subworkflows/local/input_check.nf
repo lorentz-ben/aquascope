@@ -26,7 +26,7 @@ workflow INPUT_CHECK {
                         exit 1, "Invalid input samplesheet: ${platform} platform requires long reads to be specified."
                     }
                     if ((platform == 'iontorrent') && !bam_file) {
-                        exit 1, "Invalid input samplesheet: IonTorrent platform requires either a BAM file or short_reads_1 to be specified."
+                        exit 1, "Invalid input samplesheet: IonTorrent platform requires a BAM file to be specified."
                     }
                     if (platform in ['illumina', 'nanopore', 'pacbio'] && !bedfile) {
                         exit 1, "Invalid input samplesheet: ${platform} platform requires a bedfile to be specified."
@@ -59,12 +59,14 @@ workflow INPUT_CHECK {
                     return [ meta, lr]
                 }
             }
+        //Added bedfile to metamap for mpileup generation bl 7.16.25
         ch_raw_bam = ch_input_rows.filter { it[1] == 'iontorrent' }
             .map { id, platform, fastq_1, fastq_2, lr, bam_file, bedfile ->
                 if (bam_file) {
                     def meta = [:]
                     meta.id = id
                     meta.platform = platform
+                    meta.bedfile = bedfile
                     return [meta, bam_file]
                 } else {
                     def meta = [:]

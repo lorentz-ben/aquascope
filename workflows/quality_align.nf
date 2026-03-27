@@ -35,6 +35,7 @@ include { SAMPLESHEET_CHECK                     } from '../modules/local/samples
 include { INPUT_CHECK                           } from '../subworkflows/local/input_check.nf'
 include { ONT_TRIMMING                          } from '../subworkflows/local/ont_trimming.nf'
 include { TRIMMING   as IVAR_TRIMMING_SORTING   } from '../subworkflows/local/trimming.nf'
+include { BAM_SORT_STATS_SAMTOOLS               } from '../subworkflows/local/bam_sort_stats_samtools/main.nf'
 
 //
 // MODULES
@@ -50,6 +51,10 @@ include { MINIMAP2_ALIGN as MINIMAP2_ALIGN_SHORT} from '../modules/local/minimap
 include { MINIMAP2_ALIGN as MINIMAP2_ALIGN_LONG } from '../modules/local/minimap2/align/main'
 include { REHEADER_BAM                          } from '../modules/local/reheader_bam.nf'
 include { MULTIQC                               } from '../modules/nf-core/multiqc/main'
+include { GENERATE_COV_TSV                      } from '../modules/local/cwap/generateCovTsv.nf'
+include { GENERATE_PILEUP                       } from '../modules/local/cwap/generatePileup.nf'
+include { IVAR_CONSENSUS                        } from '../modules/local/ivar/main.nf'
+
 
 
 /*
@@ -63,12 +68,14 @@ workflow runQualityAlign {
     // Initialize channels with known values
     ch_genome = params.fasta ? Channel.value(file(params.fasta)) : Channel.empty()
     ch_gff    = params.gff ? Channel.value(file(params.gff)) : Channel.empty()
+    save_mpileup = params.save_mpileup
 
     // Initialize channels for other data
     ch_versions = Channel.empty()
 
     // Validate the Sample File
     SAMPLESHEET_CHECK(ch_input)
+
 
     // Proceed only if SAMPLESHEET_CHECK is successful
     if (SAMPLESHEET_CHECK.out.success) {
@@ -112,6 +119,9 @@ workflow runQualityAlign {
         MINIMAP2_ALIGN_LONG(ch_trimmed_reads_long, ch_genome, true, false, false)
         ch_long_align_bam = MINIMAP2_ALIGN_LONG.out.bam
 
+        // bam files that do not include iontorrent (which is how NY bams will be passed in)
+        ch_no_io_bam = ch_short_align_bam.mix(ch_long_align_bam)
+
         // Reheader and Sort the INPUT BAM from Ion-Torrent
         ch_rehead_sorted_bam = Channel.empty()
         REHEADER_BAM(ch_raw_bam, ch_gff)
@@ -142,7 +152,34 @@ workflow runQualityAlign {
         // Combine sorted BAM files
         ch_sorted_bam = ch_ivar_sort_bam.mix(ch_rehead_sorted_bam)
         ch_sorted_mixedbam = ch_sorted_bam.mix(ch_amplicon_sort_bam)
+        
+        //Creates samtools mapping stats needed for Bam file submissions
+        BAM_SORT_STATS_SAMTOOLS(
+            ch_rehead_sorted_bam,
+            ch_genome
+        )
+        
+        //Produces an mpileup file used for quality control of samples downstream
+        GENERATE_PILEUP(
+            
+            ch_sorted_mixedbam,
+            ch_genome
+        )
 
+        //takes mpilup file and produces quality score figures and table
+        GENERATE_COV_TSV(
+            GENERATE_PILEUP.out.pileup,
+            ch_genome
+        )
+
+        //generate consensus sequence using Ivar
+        IVAR_CONSENSUS(
+            ch_sorted_mixedbam,
+            ch_genome,
+            save_mpileup
+        )
+
+        
         // MODULE: MULTIQC
         if (!params.skip_multiqc) {    
             // set empty

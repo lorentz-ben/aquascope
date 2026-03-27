@@ -1,0 +1,26 @@
+Bootstrap: docker
+From: continuumio/miniconda3
+
+
+%environment
+    export LC_ALL=C
+    export TZ="America/New_York"
+
+%files
+    cwap_environment.yml
+
+%post
+    TZ=Etc/UTC && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone
+    /opt/conda/bin/conda env create -f cwap_environment.yml
+    
+%runscript
+    exec /opt/conda/envs/cwap/"$@"
+    
+%labels
+    Author aa11@cdc.gov
+    Version v0.0.1
+
+%help
+    This is a container created to store dependencies scripts

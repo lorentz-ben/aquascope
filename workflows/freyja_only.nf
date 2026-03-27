@@ -20,6 +20,7 @@ include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_aquascope_pipeline'
 
+
 /*
 ========================================================================================
     IMPORT MODULES/SUBWORKFLOWS
@@ -29,6 +30,7 @@ include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_aqua
 include { INPUT_BAM_CHECK   	 } from '../modules/local/input_check_bam.nf'
 include { FREYJA_VARIANT_CALLING } from '../subworkflows/local/freyja_variant_demix_update/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
+include { SAMTOOLS_INDEX         } from '../modules/nf-core/samtools/index/main.nf'
 
 workflow runFreyja {
     take: 
@@ -54,6 +56,22 @@ workflow runFreyja {
     ch_freyja_variants = FREYJA_VARIANT_CALLING.out.variants
     ch_freyja_demix = FREYJA_VARIANT_CALLING.out.demix
     ch_versions = ch_versions.mix(FREYJA_VARIANT_CALLING.out.versions)
+
+    SAMTOOLS_INDEX ( ch_sorted_bam )
+
+    ch_sorted_bam
+    .join(SAMTOOLS_INDEX.out.bai, by: [0], remainder: true)
+        .join(SAMTOOLS_INDEX.out.csi, by: [0], remainder: true)
+        .map {
+            meta, bam, bai, csi ->
+                if (bai) {
+                    [ meta, bam, bai ]
+                } else {
+                    [ meta, bam, csi ]
+                }
+        }
+        .set { ch_bam_bai }
+
 
     // Run MultiQC
     ch_multiqc_report = Channel.empty()
