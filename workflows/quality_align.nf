@@ -166,11 +166,13 @@ workflow runQualityAlign {
             ch_genome
         )
 
-        //takes mpilup file and produces quality score figures and table
-        GENERATE_COV_TSV(
-            GENERATE_PILEUP.out.pileup,
-            ch_genome
-        )
+        // The container pawsey / hpc-python was removed from quay.io so an alternate will need to be selected
+        // in the short term we can not generate the coverage statistics 
+        // //takes mpilup file and produces quality score figures and table
+        // GENERATE_COV_TSV(
+        //     GENERATE_PILEUP.out.pileup,
+        //     ch_genome
+        // )
 
         //generate consensus sequence using Ivar
         IVAR_CONSENSUS(
