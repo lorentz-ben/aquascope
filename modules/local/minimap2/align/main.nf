@@ -33,7 +33,7 @@ process MINIMAP2_ALIGN {
     def minimap2_args = ''
 
     if (platform == 'illumina' || platform == 'iontorrent') {
-        minimap2_args = "-x sr"
+        minimap2_args = "-x sr -O 12,48 -E 4,2"
     } else if (platform == 'nanopore') {
         minimap2_args = "-x map-ont --secondary=no --sam-hit-only"
     } else if (platform == 'pacbio') {
