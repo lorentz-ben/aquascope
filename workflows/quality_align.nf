@@ -160,17 +160,17 @@ workflow runQualityAlign {
         )
         
         //Produces an mpileup file used for quality control of samples downstream
-        GENERATE_PILEUP(
-            
-            ch_sorted_mixedbam,
-            ch_genome
-        )
+        //GENERATE_PILEUP(
+        //    
+        //    ch_sorted_mixedbam,
+        //    ch_genome
+        //)
 
         //takes mpilup file and produces quality score figures and table
-        GENERATE_COV_TSV(
-            GENERATE_PILEUP.out.pileup,
-            ch_genome
-        )
+        //GENERATE_COV_TSV(
+        //    GENERATE_PILEUP.out.pileup,
+        //    ch_genome
+        //)
 
         //generate consensus sequence using Ivar
         IVAR_CONSENSUS(
